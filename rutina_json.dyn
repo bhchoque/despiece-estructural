@@ -1,0 +1,297 @@
+{
+  "Uuid": "94728ad5-f7dd-4978-a72a-c74955a8eb7b",
+  "IsCustomNode": false,
+  "Description": "",
+  "Name": "rutina_json",
+  "ElementResolver": {
+    "ResolutionMap": {}
+  },
+  "Inputs": [],
+  "Outputs": [],
+  "Nodes": [
+    {
+      "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
+      "WatchWidth": 200.0,
+      "WatchHeight": 200.0,
+      "Id": "2b60fd875ccd4888ba3ab8ea32d12c16",
+      "NodeType": "ExtensionNode",
+      "Inputs": [
+        {
+          "Id": "181d85a83c14448f910a68b32c2222a5",
+          "Name": "",
+          "Description": "Nodo desde el que se mostrará la salida",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "724e8430a87f456a8a20a948cdb14ec9",
+          "Name": "",
+          "Description": "Salida del nodo",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Visualice la salida del nodo."
+    },
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "Code": "import clr\r\nclr.AddReference('RevitServices')\r\nclr.AddReference('RevitAPI')\r\nfrom RevitServices.Persistence import DocumentManager\r\nfrom Autodesk.Revit.DB import FilteredElementCollector, BuiltInCategory, LocationCurve\r\n\r\ndoc = DocumentManager.Instance.CurrentDBDocument\r\n\r\ndef get_param(elem, nombre):\r\n    try:\r\n        p = elem.LookupParameter(nombre)\r\n        if p is None: return \"\"\r\n        return p.AsString() or str(p.AsValueString()) or \"\"\r\n    except: return \"\"\r\n\r\ndef pt(p):\r\n    return {\"x\": round(p.X*0.3048,4), \"y\": round(p.Y*0.3048,4), \"z\": round(p.Z*0.3048,4)}\r\n\r\nvigas_raw = list(FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_StructuralFraming).WhereElementIsNotElementType().ToElements())\r\ncols_raw = list(FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_StructuralColumns).WhereElementIsNotElementType().ToElements())\r\n\r\nvigas = []\r\nfor v in vigas_raw:\r\n    try:\r\n        loc = v.Location\r\n        if not isinstance(loc, LocationCurve): continue\r\n        c = loc.Curve\r\n        vigas.append({\r\n            \"id\":      v.Id.IntegerValue,\r\n            \"marca\":   get_param(v,\"Mark\") or \"VG-\"+str(v.Id.IntegerValue),\r\n            \"nivel\":   get_param(v,\"Nivel de referencia\"),\r\n            \"seccion\": v.Name,\r\n            \"inicio\":  pt(c.GetEndPoint(0)),\r\n            \"fin\":     pt(c.GetEndPoint(1))\r\n        })\r\n    except: continue\r\n\r\ncols = []\r\nfor c in cols_raw:\r\n    try:\r\n        loc = c.Location\r\n        if not isinstance(loc, LocationCurve): continue\r\n        cv = loc.Curve\r\n        cols.append({\r\n            \"id\":   c.Id.IntegerValue,\r\n            \"base\": pt(cv.GetEndPoint(0)),\r\n            \"tope\": pt(cv.GetEndPoint(1))\r\n        })\r\n    except: continue\r\n\r\nOUT = [vigas, cols, \"Vigas: \"+str(len(vigas))+\" | Columnas: \"+str(len(cols))]",
+      "Engine": "CPython3",
+      "VariableInputPorts": true,
+      "Id": "678b6da2204b474ca15ac576f9aac990",
+      "NodeType": "PythonScriptNode",
+      "Inputs": [
+        {
+          "Id": "da31bde292d3453690f5f7689b9c4c50",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "db36942968b145fbb067349719643cff",
+          "Name": "OUT",
+          "Description": "Resultado de la secuencia de comandos de Python",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Ejecuta una secuencia de comandos de Python incrustada."
+    },
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "Code": "import clr\r\nclr.AddReference('RevitServices')\r\nclr.AddReference('RevitAPI')\r\nfrom RevitServices.Persistence import DocumentManager\r\nfrom Autodesk.Revit.DB import FilteredElementCollector, BuiltInCategory, LocationCurve\r\nimport math\r\n\r\ndoc = DocumentManager.Instance.CurrentDBDocument\r\n\r\ndef get_param(elem, nombre):\r\n    try:\r\n        p = elem.LookupParameter(nombre)\r\n        if p is None: return \"\"\r\n        return p.AsString() or str(p.AsValueString()) or \"\"\r\n    except: return \"\"\r\n\r\ndef pt(p):\r\n    return {\"x\": round(p.X*0.3048,4), \"y\": round(p.Y*0.3048,4), \"z\": round(p.Z*0.3048,4)}\r\n\r\ndef lon3d(p1, p2):\r\n    return round(math.sqrt((p2[\"x\"]-p1[\"x\"])**2+(p2[\"y\"]-p1[\"y\"])**2+(p2[\"z\"]-p1[\"z\"])**2),4)\r\n\r\nvigas_raw = list(FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_StructuralFraming).WhereElementIsNotElementType().ToElements())\r\n\r\nresultado = []\r\nfor v in vigas_raw:\r\n    try:\r\n        loc = v.Location\r\n        if not isinstance(loc, LocationCurve): continue\r\n        c = loc.Curve\r\n        inicio  = pt(c.GetEndPoint(0))\r\n        fin     = pt(c.GetEndPoint(1))\r\n        resultado.append({\r\n            \"id\":       v.Id.IntegerValue,\r\n            \"marca\":    get_param(v,\"Mark\") or \"VG-\"+str(v.Id.IntegerValue),\r\n            \"nivel\":    get_param(v,\"Nivel de referencia\"),\r\n            \"seccion\":  v.Name,\r\n            \"inicio\":   inicio,\r\n            \"fin\":      fin,\r\n            \"longitud\": lon3d(inicio, fin)\r\n        })\r\n    except: continue\r\n\r\nOUT = resultado",
+      "Engine": "CPython3",
+      "VariableInputPorts": true,
+      "Id": "1d7ebf952404433daf05ef8cc7965850",
+      "NodeType": "PythonScriptNode",
+      "Inputs": [
+        {
+          "Id": "fdddfc41887a4859942a3766f628e718",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "95bb90e06e9d493c9addbdd9ab88c24a",
+          "Name": "OUT",
+          "Description": "Resultado de la secuencia de comandos de Python",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Ejecuta una secuencia de comandos de Python incrustada."
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
+      "WatchWidth": 200.0,
+      "WatchHeight": 200.0,
+      "Id": "ef6304418ff74d6d99763c305bc02235",
+      "NodeType": "ExtensionNode",
+      "Inputs": [
+        {
+          "Id": "231d9adf5103405d8b461ecfd73a9ee2",
+          "Name": "",
+          "Description": "Nodo desde el que se mostrará la salida",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "5bfe67ef9ce3417aa8b9f3fdc9b94cd0",
+          "Name": "",
+          "Description": "Salida del nodo",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Visualice la salida del nodo."
+    },
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "Code": "import clr\r\nclr.AddReference('RevitServices')\r\nclr.AddReference('RevitAPI')\r\nfrom RevitServices.Persistence import DocumentManager\r\nfrom Autodesk.Revit.DB import FilteredElementCollector, BuiltInCategory, LocationCurve\r\nimport math, json, os\r\nfrom datetime import date\r\n\r\ndoc = DocumentManager.Instance.CurrentDBDocument\r\n\r\ndef get_param(elem, nombre):\r\n    try:\r\n        p = elem.LookupParameter(nombre)\r\n        if p is None: return \"\"\r\n        return p.AsString() or str(p.AsValueString()) or \"\"\r\n    except: return \"\"\r\n\r\ndef pt(p):\r\n    return {\"x\": round(float(p.X)*0.3048,4), \"y\": round(float(p.Y)*0.3048,4), \"z\": round(float(p.Z)*0.3048,4)}\r\n\r\ndef lon3d(p1, p2):\r\n    return round(math.sqrt((p2[\"x\"]-p1[\"x\"])**2+(p2[\"y\"]-p1[\"y\"])**2+(p2[\"z\"]-p1[\"z\"])**2),4)\r\n\r\nvigas_raw = list(FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_StructuralFraming).WhereElementIsNotElementType().ToElements())\r\n\r\nelementos = []\r\nfor v in vigas_raw:\r\n    try:\r\n        loc = v.Location\r\n        if not isinstance(loc, LocationCurve): continue\r\n        c = loc.Curve\r\n        inicio  = pt(c.GetEndPoint(0))\r\n        fin     = pt(c.GetEndPoint(1))\r\n        elementos.append({\r\n            \"id\":       int(v.Id.IntegerValue),\r\n            \"marca\":    str(get_param(v,\"Mark\") or \"VG-\"+str(v.Id.IntegerValue)),\r\n            \"nivel\":    str(get_param(v,\"Nivel de referencia\")),\r\n            \"seccion\":  str(v.Name),\r\n            \"inicio\":   inicio,\r\n            \"fin\":      fin,\r\n            \"longitud\": lon3d(inicio, fin)\r\n        })\r\n    except: continue\r\n\r\nruta = \"D:/Documents/01_Programas/Programa_despieces/vigas.json\"\r\n\r\npayload = {\r\n    \"proyecto\": \"PROYECTO_INICIAL\",\r\n    \"fecha\":    str(date.today()),\r\n    \"unidades\": \"metros\",\r\n    \"elementos\": elementos\r\n}\r\n\r\nos.makedirs(os.path.dirname(ruta), exist_ok=True)\r\nwith open(ruta, \"w\", encoding=\"utf-8\") as f:\r\n    json.dump(payload, f, indent=2, ensure_ascii=False)\r\n\r\nOUT = \"Exportado: \" + ruta + \" — \" + str(len(elementos)) + \" elementos\"",
+      "Engine": "CPython3",
+      "VariableInputPorts": true,
+      "Id": "5dafb31fa4da4a0e91a107d1fa56a642",
+      "NodeType": "PythonScriptNode",
+      "Inputs": [
+        {
+          "Id": "a8d77a6cbfbb43ddb81317aeb0191c25",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "307e42068c414456ad295e3e5666e4f4",
+          "Name": "OUT",
+          "Description": "Resultado de la secuencia de comandos de Python",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Ejecuta una secuencia de comandos de Python incrustada."
+    }
+  ],
+  "Connectors": [
+    {
+      "Start": "db36942968b145fbb067349719643cff",
+      "End": "181d85a83c14448f910a68b32c2222a5",
+      "Id": "32d8e78863c94db3ba980ba66fb7b1df",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "db36942968b145fbb067349719643cff",
+      "End": "fdddfc41887a4859942a3766f628e718",
+      "Id": "8235ec1a09b24393b2284f3cdcc449da",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "95bb90e06e9d493c9addbdd9ab88c24a",
+      "End": "231d9adf5103405d8b461ecfd73a9ee2",
+      "Id": "89cd1e9475d745edac801c91cf03b024",
+      "IsHidden": "False"
+    }
+  ],
+  "Dependencies": [],
+  "NodeLibraryDependencies": [],
+  "EnableLegacyPolyCurveBehavior": true,
+  "Thumbnail": "",
+  "GraphDocumentationURL": null,
+  "ExtensionWorkspaceData": [
+    {
+      "ExtensionGuid": "28992e1d-abb9-417f-8b1b-05e053bee670",
+      "Name": "Propiedades",
+      "Version": "3.3",
+      "Data": {}
+    },
+    {
+      "ExtensionGuid": "DFBD9CC0-DB40-457A-939E-8C8555555A9D",
+      "Name": "Generative Design",
+      "Version": "8.2",
+      "Data": {}
+    }
+  ],
+  "Author": "",
+  "Linting": {
+    "activeLinter": "Ninguno",
+    "activeLinterId": "7b75fb44-43fd-4631-a878-29f4d5d8399a",
+    "warningCount": 0,
+    "errorCount": 0
+  },
+  "Bindings": [],
+  "View": {
+    "Dynamo": {
+      "ScaleFactor": 1.0,
+      "HasRunWithoutCrash": true,
+      "IsVisibleInDynamoLibrary": true,
+      "Version": "3.3.0.6316",
+      "RunType": "Automatic",
+      "RunPeriod": "1000"
+    },
+    "Camera": {
+      "Name": "_Vista preliminar en segundo plano",
+      "EyeX": -17.0,
+      "EyeY": 24.0,
+      "EyeZ": 50.0,
+      "LookX": 12.0,
+      "LookY": -13.0,
+      "LookZ": -58.0,
+      "UpX": 0.0,
+      "UpY": 1.0,
+      "UpZ": 0.0
+    },
+    "ConnectorPins": [],
+    "NodeViews": [
+      {
+        "Id": "2b60fd875ccd4888ba3ab8ea32d12c16",
+        "Name": "Watch",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 449.47263348889135,
+        "Y": 35.268721661042946
+      },
+      {
+        "Id": "678b6da2204b474ca15ac576f9aac990",
+        "Name": "Python Script",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 173.06455013522043,
+        "Y": -51.55101431874209
+      },
+      {
+        "Id": "1d7ebf952404433daf05ef8cc7965850",
+        "Name": "Python Script",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 501.39599962336433,
+        "Y": -159.30366951553407
+      },
+      {
+        "Id": "ef6304418ff74d6d99763c305bc02235",
+        "Name": "Watch",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 898.3997433730178,
+        "Y": -359.21147582462186
+      },
+      {
+        "Id": "5dafb31fa4da4a0e91a107d1fa56a642",
+        "Name": "Python Script",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 888.5402349771659,
+        "Y": -20.241970851604776
+      }
+    ],
+    "Annotations": [],
+    "X": 200.78302882592993,
+    "Y": 329.66911528400493,
+    "Zoom": 0.6832066940525682
+  }
+}
