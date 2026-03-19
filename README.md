@@ -9,7 +9,15 @@ desde Revit → Dynamo → JSON → DXF.
 3. Cargar el JSON y generar el DXF
 
 ## Requisitos
-pip install notebook ezdxf matplotlib ipywidgets
+1. Python 3.x
+2. Instalar dependencias:
+   pip install notebook ezdxf matplotlib ipywidgets
 
+## Cómo usar
+1. Descargar o clonar el repositorio
+2. Tener un archivo vigas.json en la misma carpeta
+3. Abrir terminal en la carpeta y ejecutar:
+   jupyter notebook
+4. Abrir despiece.ipynb y ejecutar celda por celda
 ## Autor
 ...
